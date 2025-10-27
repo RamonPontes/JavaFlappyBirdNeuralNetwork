@@ -52,13 +52,32 @@ public class GameScreen extends JFrame implements ActionListener {
         Timer.start();
         PipesTimer.start();
 
-        neuralNetwork = new NeuralNetwork(bird, pipesMap);
+        neuralNetwork = new NeuralNetwork(bird);
 
         setResizable(false);
         setSize((int) WidthScreen, (int) HeightScreen);
         setVisible(true);
 
         initializeComponents();
+    }
+
+    private java.util.List<Pipe> getNextPipe() {
+        if (pipesMap.isEmpty()) return null;
+
+        Pipe next = null;
+        int nextKey = -1;
+
+        for (Map.Entry<Integer, java.util.List<Pipe>> entry : pipesMap.entrySet()) {
+            Pipe pipe = entry.getValue().get(0);
+            if (pipe.getX() + pipe.getWidth() > bird.getX()) {
+                if (next == null || pipe.getX() < next.getX()) {
+                    next = pipe;
+                    nextKey = entry.getKey();
+                }
+            }
+        }
+
+        return nextKey == -1 ? null : pipesMap.get(nextKey);
     }
 
     private Image createBackgroundImage(Image backgroundImage, Image baseImage) {
@@ -89,6 +108,7 @@ public class GameScreen extends JFrame implements ActionListener {
                         break;
                     case KeyEvent.VK_P:
                         inGame = !inGame;
+                        System.out.println(neuralNetwork);
                         break;
                     case KeyEvent.VK_R:
                         restart();
@@ -123,7 +143,7 @@ public class GameScreen extends JFrame implements ActionListener {
                         pipe.drawPipe(g);
                     }
                 }
-                neuralNetwork.getNextAction(g);
+                neuralNetwork.getNextAction(g, getNextPipe());
             }
         };
     }
