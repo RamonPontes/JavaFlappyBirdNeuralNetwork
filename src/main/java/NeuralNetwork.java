@@ -1,8 +1,7 @@
-import com.jogamp.common.util.SHASum;
-
 import java.awt.*;
 import java.util.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class NeuralNetwork {
     private final Bird bird;
@@ -16,16 +15,18 @@ public class NeuralNetwork {
     private final Neuron outputsLayer;
     private final Random random = new Random();
     private int generation;
+    private int textY;
 
-    // Onde comeca, ( Onde vai, Onde termina )
-    Map<Neuron, Map<Neuron, Double>> weights;
+    private int lastId;
+
+    List<NeuronWeights> weights;
 
     public NeuralNetwork(Bird bird) {
         this.bird = bird;
-        weights = new HashMap<>();
+        weights = new ArrayList<>();
         hiddenLayer = new ArrayList<>();
         inputsLayer = new ArrayList<>();
-        outputsLayer = new Neuron();
+        outputsLayer = new Neuron(getNextId());
 
         generation = 0;
     }
@@ -46,7 +47,7 @@ public class NeuralNetwork {
                 double dist = Math.sqrt(Math.pow((inputX - birdX), 2) + Math.pow((inputY - birdY), 2));
 
                 if (inputsLayer.size() < nextPipe.size()) {
-                    inputsLayer.add(i, new Neuron(dist));
+                    inputsLayer.add(i, new Neuron(dist, getNextId()));
                 } else {
                     inputsLayer.get(i).setInitValue(dist);
                 }
@@ -54,34 +55,41 @@ public class NeuralNetwork {
         }
     }
 
+    private int getNextId() {
+        return ++lastId;
+    }
+
     public void getNextAction(Graphics g, List<Pipe> nextPipe) {
         getInputs(nextPipe);
+        startHidden();
+        startWeights();
         getHidden();
         drawNeuralInputs(g);
+        drawNeuralHidden(g);
     }
 
     public void getHidden() {
-        if (!inputsLayer.isEmpty()) {
+        for (Neuron neuroHidden : hiddenLayer) {
+            List<NeuronWeights> weightsList = weights.stream().filter(n -> n.getNeuronOutput() == neuroHidden).toList();
+            for (NeuronWeights weights : weightsList) {
+                neuroHidden.setInitValue(weights.getOutputValue(true));
+            }
+        }
+    }
+
+    public void startHidden() {
+        if (hiddenLayer.isEmpty()) {
             for (Neuron neuronInput : inputsLayer) {
-                if (!weights.containsKey(neuronInput)) {
-                    weights.put(neuronInput, new HashMap<>());
-                }
+                hiddenLayer.add(new Neuron(getNextId()));
+            }
+        }
+    }
 
-                for (Neuron neuroHidden : hiddenLayer) {
-                    Map<Neuron, Double> innerMap = weights.get(neuronInput);
-
-                    if (!innerMap.containsKey(neuroHidden)) {
-                        innerMap.put(neuroHidden, Math.random());
-                    }
-
-                    Double weightValue = innerMap.get(neuroHidden);
-
-                    if (weightValue == null) {
-                        weightValue = Math.random() * 2 - 1;
-                    }
-
-                    double newValue = neuronInput.getInitValue() * weightValue;
-                    neuroHidden.setInitValue(newValue);
+    public void startWeights() {
+        if (weights.isEmpty()) {
+            for (Neuron neuronInput : inputsLayer) {
+                for (Neuron neuronOutput : hiddenLayer) {
+                    weights.add(new NeuronWeights(neuronInput, neuronOutput, Math.random()));
                 }
             }
         }
@@ -89,18 +97,38 @@ public class NeuralNetwork {
 
     public void drawNeuralInputs(Graphics g) {
         g.setColor(Color.BLACK);
-        g.setFont(new Font("Arial", 0, 20));
+        g.setFont(new Font("BOLD", 0, 15));
 
         int x = 10;
         int y = 30;
 
+        g.drawString("Geração: " + generation, x, y);
+
+        y += 20;
+
+        g.setColor(Color.GREEN);
+
         for (int i = 0; i < inputsLayer.size(); i++) {
             Neuron neuron = inputsLayer.get(i);
-            g.drawString("Distância até cano " + i + ": " + String.format("%.2f", neuron.getInitValue()), x, y);
+            g.drawString("Camada de entrada " + i + ": " + String.format("%.2f", neuron.getInitValue()), x, y);
+
             y += 20;
         }
+    }
 
-        g.drawString("Geração: " + generation, x, y);
+
+    public void drawNeuralHidden(Graphics g) {
+        g.setColor(Color.RED);
+        g.setFont(new Font("BOLD", 0, 15));
+
+        int x = 10;
+        int y = 90;
+
+        for (int i = 0; i < hiddenLayer.size(); i++) {
+            Neuron neuron = hiddenLayer.get(i);
+            g.drawString("Camada oculta " + i + ": " + String.format("%.2f", neuron.getInitValue()), x, y);
+            y += 20;
+        }
     }
 
     @Override

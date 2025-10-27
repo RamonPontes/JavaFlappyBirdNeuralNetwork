@@ -1,13 +1,17 @@
+import java.util.Objects;
+
 public class Neuron {
+    private double id;
     private double initValue;
     private double biasValue;
     private double outputValue;
 
-    public Neuron(double initValue) {
+    public Neuron(double initValue, int id) {
         this.initValue = initValue;
+        this.id = id;
     }
 
-    public Neuron() {
+    public Neuron(int id) {
     }
 
     public double getInitValue() {
@@ -35,5 +39,21 @@ public class Neuron {
                 "         biasValue=" + biasValue + "\n" +
                 "         outputValue=" + outputValue + "\n" +
                 '}';
+    }
+
+    public double getId() {
+        return id;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        Neuron neuron = (Neuron) o;
+        return Double.compare(id, neuron.id) == 0;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
     }
 }
